@@ -1,0 +1,9 @@
+# job_id arrival runtime cores memory priority   (priority: lower = more important)
+big1     0  8  4  6  2
+short1   0  1  1  2  1
+short2   0  2  1  2  1
+med1     0  4  2  4  0
+short3   1  1  1  2  1
+med2     2  3  2  4  0
+big2     2  6  3  5  2
+short4   3  2  1  2  1

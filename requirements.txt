@@ -1,0 +1,4 @@
+# Core engine (model, policies, simulator, CLI) needs only the standard library.
+# These are for the optional Gantt chart and the test suite.
+matplotlib>=3.5
+pytest>=7.0

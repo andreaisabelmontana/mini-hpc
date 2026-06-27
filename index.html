@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>miniHPC — Built From Scratch</title>
-<meta name="description" content="An original from-scratch build of miniHPC: a small app that puts high-performance computing in your hands — submit jobs, watch them schedule across workers, and feel how a cluster really behaves." />
+<title>miniHPC — job scheduler + cluster simulator</title>
+<meta name="description" content="miniHPC: a small job scheduler and cluster simulator in Python. Submit jobs, run them under FIFO / SJF / Priority / Round-Robin / Backfill, and read back makespan, wait, turnaround and utilisation. The engine is real Python; this page mirrors it in-browser so you can watch the schedule build." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -17,43 +17,54 @@
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:860px;margin:0 auto;padding:0 28px}
+  .wrap{max-width:880px;margin:0 auto;padding:0 28px}
   a{color:var(--accent);text-decoration:none}
   a:hover{text-decoration:underline}
   code{font-family:var(--mono);font-size:.86em;background:var(--accent-soft);padding:.1em .4em;border-radius:4px;color:#075985}
   h1,h2,h3{font-family:var(--serif);font-weight:500;line-height:1.15;letter-spacing:-.01em}
-  header.hero{padding:88px 0 56px;border-bottom:1px solid var(--line)}
+  header.hero{padding:84px 0 52px;border-bottom:1px solid var(--line)}
   .eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 22px}
   h1{font-size:clamp(2.6rem,6vw,4.1rem);margin:0 0 18px}
-  .lede{font-size:1.22rem;color:var(--muted);max-width:62ch;margin:0 0 28px}
+  .lede{font-size:1.2rem;color:var(--muted);max-width:64ch;margin:0 0 26px}
   .meta{display:flex;flex-wrap:wrap;gap:10px;font-size:.82rem}
   .chip{font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;border:1px solid var(--line);border-radius:999px;padding:5px 12px;color:var(--muted);background:var(--card)}
-  section{padding:54px 0;border-bottom:1px solid var(--line)}
+  section{padding:52px 0;border-bottom:1px solid var(--line)}
   .kicker{font-family:var(--mono);font-size:.74rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin:0 0 14px}
   h2{font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0 0 20px}
   h3{font-size:1.2rem;margin:0 0 6px}
-  p{margin:0 0 18px;max-width:68ch}
+  p{margin:0 0 18px;max-width:70ch}
   .muted{color:var(--muted)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:8px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:8px}
   .tool{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
   .tool .t{font-family:var(--mono);font-size:.78rem;color:var(--accent);letter-spacing:.04em;margin-bottom:8px}
   .tool h3{font-size:1.05rem;font-family:var(--sans);font-weight:600;margin-bottom:6px}
   .tool p{font-size:.92rem;color:var(--muted);margin:0}
+  .note{background:var(--accent-soft);border:1px solid #bdd8ec;border-radius:14px;padding:16px 20px;margin:0 0 24px;font-size:.92rem;color:#0a3a55}
+  .note b{color:var(--ink)}
+  /* demo */
+  .demo{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin-top:8px}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+  .controls label{font-family:var(--mono);font-size:.74rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+  select,input[type=number]{font-family:var(--mono);font-size:.85rem;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  input[type=number]{width:64px}
+  button{font-family:var(--mono);font-size:.8rem;letter-spacing:.03em;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:8px;padding:9px 16px;cursor:pointer}
+  button.ghost{background:#fff;color:var(--accent)}
+  button:hover{filter:brightness(1.05)}
+  #gantt{width:100%;border:1px solid var(--line);border-radius:10px;background:#fbfdff;display:block;margin-top:6px}
+  .legend{font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-top:8px}
+  table.metrics{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.8rem;margin-top:18px}
+  table.metrics th,table.metrics td{text-align:right;padding:7px 10px;border-bottom:1px solid var(--line)}
+  table.metrics th:first-child,table.metrics td:first-child{text-align:left}
+  table.metrics thead th{color:var(--accent);border-bottom:1px solid var(--line)}
+  table.metrics tr.active td{background:var(--accent-soft)}
   ol.flow{counter-reset:s;list-style:none;padding:0;margin:24px 0 0}
   ol.flow li{position:relative;padding:18px 0 18px 56px;border-top:1px solid var(--line)}
   ol.flow li:before{counter-increment:s;content:counter(s,decimal-leading-zero);position:absolute;left:0;top:18px;font-family:var(--mono);font-size:.8rem;color:var(--accent);border:1px solid var(--line);border-radius:8px;width:38px;height:38px;display:grid;place-items:center;background:var(--card)}
   ol.flow li h3{font-family:var(--sans);font-size:1.02rem;font-weight:600;margin:0 0 4px}
   ol.flow li p{margin:0;font-size:.93rem;color:var(--muted)}
-  .callout{background:var(--accent-soft);border:1px solid #bdd8ec;border-radius:14px;padding:24px 26px;margin-top:8px}
-  .callout p:last-child{margin:0}
-  ul.learn{list-style:none;padding:0;margin:8px 0 0}
-  ul.learn li{padding:14px 0 14px 30px;border-top:1px solid var(--line);position:relative;color:var(--muted);max-width:68ch}
-  ul.learn li:before{content:"→";position:absolute;left:0;color:var(--accent);font-family:var(--mono)}
-  ul.learn li b{color:var(--ink);font-weight:600}
-  .price{display:flex;align-items:baseline;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 26px;margin-top:8px}
-  .price .n{font-family:var(--serif);font-size:2.6rem;color:var(--accent);line-height:1}
-  .price .l{color:var(--muted);font-size:.95rem}
-  footer{padding:48px 0 80px}
+  pre.code{font-family:var(--mono);font-size:.8rem;background:#0a1a28;color:#cfe6f5;border-radius:12px;padding:18px 20px;overflow:auto;line-height:1.6}
+  pre.code .c{color:#6f93ab}
+  footer{padding:46px 0 80px}
   .credit{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px}
   .credit .k{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
   footer .fine{font-size:.8rem;color:var(--muted);margin-top:22px;text-align:center}
@@ -62,71 +73,101 @@
 <body>
 <header class="hero">
   <div class="wrap">
-    <p class="eyebrow">From-Scratch Build · High-Performance Computing</p>
+    <p class="eyebrow">Job scheduler · Cluster simulator · Python</p>
     <h1>miniHPC</h1>
-    <p class="lede">A whole supercomputing centre, shrunk to an app you can poke at. miniHPC lets you submit jobs, hand them resource requests, and watch a scheduler place them across a pool of workers in real time — queues, priorities, contention and all. I rebuilt it from scratch because the fastest way to understand a cluster is to build a tiny one you can see thinking.</p>
+    <p class="lede">A small job scheduler and cluster simulator. Submit a workload, run it under a scheduling policy, and read back the schedule plus the metrics a real cluster cares about — makespan, throughput, wait, turnaround, utilisation. There's also a real multiprocessing executor, so it's more than a sim.</p>
     <div class="meta">
-      <span class="chip">Python</span><span class="chip">Job scheduler</span><span class="chip">Queues</span>
-      <span class="chip">Worker pool</span><span class="chip">Resource model</span><span class="chip">Visualisation</span>
+      <span class="chip">Python</span><span class="chip">FIFO · SJF · Priority</span><span class="chip">Round-Robin · Backfill</span>
+      <span class="chip">Discrete-event sim</span><span class="chip">multiprocessing executor</span>
     </div>
   </div>
 </header>
 
 <section>
   <div class="wrap">
-    <p class="kicker">What it is</p>
-    <h2>A cluster you can watch think</h2>
-    <p>Real HPC schedulers like Slurm are powerful and almost entirely invisible — you submit a job, wait, and get results, with the interesting decisions hidden inside a black box. miniHPC turns that box transparent. It models the core loop of any batch system: jobs arrive with resource demands, a scheduler decides what runs where and when, workers execute, and the queue drains.</p>
-    <p>Because it's small and visible, you can <i>feel</i> the trade-offs that make scheduling hard. Pack jobs tightly and big ones starve; favour the big ones and throughput drops. Watching the queue rearrange under different policies teaches more than any diagram of one ever could.</p>
-    <div class="price">
-      <div class="n">queue → run</div>
-      <div class="l">the heartbeat of every batch system — and the one loop miniHPC makes visible so you can actually study it.</div>
+    <p class="kicker">Try it</p>
+    <h2>Watch a policy build the schedule</h2>
+    <div class="note"><b>The engine is real Python</b> (<code>minihpc</code> — model, policies, discrete-event simulator, CLI, tests). This widget is a faithful in-browser port of the same logic so you can see the schedule build; the table below it shows the numbers from the actual Python run on the default workload.</div>
+    <div class="demo">
+      <div class="controls">
+        <label>policy
+          <select id="policy">
+            <option value="fifo">FIFO</option>
+            <option value="sjf">SJF</option>
+            <option value="priority">Priority</option>
+            <option value="rr">Round-Robin</option>
+            <option value="backfill">Backfill</option>
+          </select>
+        </label>
+        <label>workers<input type="number" id="workers" value="1" min="1" max="4"></label>
+        <label>cores/worker<input type="number" id="cores" value="4" min="1" max="16"></label>
+        <label>memory/worker<input type="number" id="memory" value="8" min="1" max="64"></label>
+        <button id="run">Run</button>
+        <button class="ghost" id="reset">Reset workload</button>
+      </div>
+      <canvas id="gantt" height="200"></canvas>
+      <div class="legend" id="legend"></div>
+      <table class="metrics">
+        <thead><tr><th>metric</th><th>value</th></tr></thead>
+        <tbody id="liveMetrics"></tbody>
+      </table>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <p class="kicker">The stack</p>
-    <h2>From a submitted job to a finished one</h2>
-    <p class="muted">The moving parts of a batch scheduler, made tangible.</p>
-    <div class="grid">
-      <div class="tool"><div class="t">jobs</div><h3>Job model</h3><p>Each job carries resource needs and a runtime — the unit the whole system schedules around.</p></div>
-      <div class="tool"><div class="t">queue</div><h3>Submission queue</h3><p>Incoming jobs wait here, ordered by the scheduling policy in force.</p></div>
-      <div class="tool"><div class="t">brain</div><h3>Scheduler</h3><p>Decide which queued job runs on which free worker — FIFO, priority, or backfill.</p></div>
-      <div class="tool"><div class="t">workers</div><h3>Worker pool</h3><p>A set of compute nodes with finite resources that execute jobs to completion.</p></div>
-      <div class="tool"><div class="t">resources</div><h3>Capacity model</h3><p>Track cores and memory so a job only runs when its demands actually fit.</p></div>
-      <div class="tool"><div class="t">see it</div><h3>Live view</h3><p>Visualise the queue, the running jobs and utilisation as the simulation ticks forward.</p></div>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <p class="kicker">Architecture</p>
-    <h2>How a job moves through</h2>
-    <p>Every tick of the simulated cluster runs the same scheduling cycle:</p>
-    <ol class="flow">
-      <li><h3>Submit</h3><p>A job enters the queue with its resource request and expected runtime.</p></li>
-      <li><h3>Schedule</h3><p>The scheduler picks the next job that fits an available worker.</p></li>
-      <li><h3>Allocate</h3><p>Reserve the worker's cores and memory for that job.</p></li>
-      <li><h3>Run</h3><p>Execute it for its duration, then release the resources.</p></li>
-      <li><h3>Repeat</h3><p>Re-evaluate the queue and keep the cluster as busy as the policy allows.</p></li>
-    </ol>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <p class="kicker">Reflection</p>
-    <h2>What rebuilding it taught me</h2>
-    <ul class="learn">
-      <li><b>Scheduling is a balancing act.</b> Throughput, fairness and turnaround pull against each other — no policy wins on all three.</li>
-      <li><b>Big jobs starve.</b> Greedy packing keeps utilisation high but can leave large jobs waiting forever — which is why backfill exists.</li>
-      <li><b>Resources are the real constraint.</b> A job isn't schedulable just because a worker is idle; it has to <i>fit</i>.</li>
-      <li><b>Visibility is the teacher.</b> Seeing the queue rearrange under a policy change makes the abstraction click instantly.</li>
-      <li><b>Small models explain big systems.</b> A toy cluster captures the exact tensions a real one faces — minus the YAML.</li>
+    <p class="kicker">Real run</p>
+    <h2>How the policies compare</h2>
+    <p>From <code>python demo.py</code> — a fixed 8-job workload on <b>1 worker × 4 cores / 8 memory</b>. The tight capacity is what makes the policies diverge.</p>
+    <table class="metrics">
+      <thead><tr><th>policy</th><th>makespan</th><th>throughput</th><th>avg wait</th><th>avg turn</th><th>util %</th></tr></thead>
+      <tbody>
+        <tr><td>FIFO</td><td>21</td><td>0.381</td><td>9.12</td><td>12.50</td><td>83.3</td></tr>
+        <tr><td>SJF</td><td>19</td><td>0.421</td><td>1.88</td><td>5.25</td><td>92.1</td></tr>
+        <tr><td>Priority</td><td>20</td><td>0.400</td><td>2.38</td><td>5.75</td><td>87.5</td></tr>
+        <tr><td>Round-Robin</td><td>18</td><td>0.444</td><td>8.62</td><td>12.00</td><td>97.2</td></tr>
+        <tr><td>Backfill</td><td>19</td><td>0.421</td><td>1.88</td><td>5.25</td><td>92.1</td></tr>
+      </tbody>
+    </table>
+    <ul class="legend" style="list-style:none;padding:0;margin-top:16px;line-height:1.9">
+      <li>→ <b>SJF</b> cuts average wait to 1.88 vs FIFO's 9.12 — FIFO's 8-tick head job blocks the queue; SJF clears the short jobs first.</li>
+      <li>→ <b>Backfill</b> recovers idle capacity FIFO wastes (92.1% vs 83.3% util) by slipping short jobs into the gaps.</li>
+      <li>→ <b>Round-Robin</b> tops utilisation (97.2%) but keeps a high wait — busy isn't the same as fair.</li>
     </ul>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">The model</p>
+    <h2>From a submitted job to a finished one</h2>
+    <div class="grid">
+      <div class="tool"><div class="t">job</div><h3>Job</h3><p>id, arrival, runtime, cores, memory, priority — and an optional callable payload for the real executor.</p></div>
+      <div class="tool"><div class="t">worker</div><h3>Worker</h3><p>A node with fixed cores/memory; runs several jobs at once if they fit. reserve/release make over-allocation impossible.</p></div>
+      <div class="tool"><div class="t">cluster</div><h3>Cluster</h3><p>A pool of workers with aggregate capacity book-keeping — what the metrics layer reads from.</p></div>
+      <div class="tool"><div class="t">policy</div><h3>5 policies</h3><p>FIFO, SJF, Priority, Round-Robin and EASY-style Backfill — each just an ordering rule over the ready queue.</p></div>
+      <div class="tool"><div class="t">sim</div><h3>Discrete-event sim</h3><p>Tick clock that releases, admits, schedules first-fit, and jumps to the next event — no empty ticks.</p></div>
+      <div class="tool"><div class="t">run</div><h3>Real executor</h3><p>Dispatches job payloads across a process pool in the policy's order, capped at cluster cores. More than a sim.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">The loop</p>
+    <h2>One tick of the cluster</h2>
+    <ol class="flow">
+      <li><h3>Release</h3><p>Free the cores and memory of every job whose finish tick has arrived.</p></li>
+      <li><h3>Admit</h3><p>Move newly arrived jobs into the ready queue.</p></li>
+      <li><h3>Schedule</h3><p>Ask the policy to order the ready queue; place each job first-fit. Strict policies stop at a blocked head; backfill looks past it.</p></li>
+      <li><h3>Advance</h3><p>Jump the clock to the next arrival or completion and repeat.</p></li>
+    </ol>
+    <pre class="code"><span class="c"># the whole engine, from Python</span>
+from minihpc import demo_workload, compare
+
+cmp = compare(demo_workload(), n_workers=1, cores=4, memory=8)
+print(cmp.table())   <span class="c"># makespan / throughput / wait / turnaround / util</span></pre>
   </div>
 </section>
 
@@ -134,10 +175,146 @@
   <div class="wrap">
     <div class="credit">
       <div class="k">About this build</div>
-      <p style="margin:0">An original, from-scratch build by <b>Andrea</b> — written to learn how HPC batch systems work by building one: job models, submission queues, scheduling policies, a resource-aware worker pool and a live view of it all. Plain HTML/CSS, deployed on GitHub Pages.</p>
+      <p style="margin:0">A from-scratch Python project by <b>Andrea</b>: a job/cluster model, five real scheduling policies, a discrete-event simulator with cluster metrics, a multiprocessing executor and a pytest suite that checks the schedules against hand computation. The page is a single self-contained file; the comparison numbers are from a real <code>demo.py</code> run.</p>
     </div>
     <p class="fine">Built from scratch by Andrea · one of an ongoing series of learning builds.</p>
   </div>
 </footer>
+
+<script>
+// In-browser port of the minihpc engine (model + policies + discrete-event sim).
+// Mirrors minihpc/policies.py and minihpc/simulator.py so the widget shows the
+// same schedule the Python engine produces.
+const DEMO = [
+  {id:"big1",   arrival:0, runtime:8, cores:4, memory:6, priority:2},
+  {id:"short1", arrival:0, runtime:1, cores:1, memory:2, priority:1},
+  {id:"short2", arrival:0, runtime:2, cores:1, memory:2, priority:1},
+  {id:"med1",   arrival:0, runtime:4, cores:2, memory:4, priority:0},
+  {id:"short3", arrival:1, runtime:1, cores:1, memory:2, priority:1},
+  {id:"med2",   arrival:2, runtime:3, cores:2, memory:4, priority:0},
+  {id:"big2",   arrival:2, runtime:6, cores:3, memory:5, priority:2},
+  {id:"short4", arrival:3, runtime:2, cores:1, memory:2, priority:1},
+];
+
+const POLICIES = {
+  fifo:     {skip:false, key:j=>[j.arrival, j.id]},
+  sjf:      {skip:false, key:j=>[j.runtime, j.arrival, j.id]},
+  priority: {skip:false, key:j=>[j.priority, j.arrival, j.id]},
+  backfill: {skip:true,  key:j=>[j.priority, j.arrival, j.id]},
+  // round-robin handled specially (rotates the head each tick)
+};
+
+function cmpKey(a,b){ for(let i=0;i<a.length;i++){ if(a[i]<b[i])return -1; if(a[i]>b[i])return 1; } return 0; }
+
+function order(jobs, policy, rrOffset){
+  if(policy==="rr"){
+    const base=[...jobs].sort((x,y)=>cmpKey([x.arrival,x.id],[y.arrival,y.id]));
+    if(!base.length) return base;
+    const k=rrOffset%base.length;
+    return base.slice(k).concat(base.slice(0,k));
+  }
+  const key=POLICIES[policy].key;
+  return [...jobs].sort((x,y)=>cmpKey(key(x),key(y)));
+}
+
+function simulate(jobs, nWorkers, cores, memory, policy){
+  const workers=Array.from({length:nWorkers},(_,i)=>({id:i,fc:cores,fm:memory}));
+  const totalCores=nWorkers*cores;
+  const skip = policy==="rr" ? true : POLICIES[policy].skip;
+  let pending=[...jobs].sort((x,y)=>cmpKey([x.arrival,x.id],[y.arrival,y.id]));
+  let ready=[], running=[], records=[], now=0, idx=0, ticks=0, rr=0;
+  const fits=(w,j)=>j.cores<=w.fc&&j.memory<=w.fm;
+
+  while((idx<pending.length||ready.length||running.length)&&ticks<100000){
+    ticks++;
+    running=running.filter(r=>{ if(r.finish<=now){const w=workers[r.worker];w.fc+=r.job.cores;w.fm+=r.job.memory;return false;} return true; });
+    while(idx<pending.length&&pending[idx].arrival<=now){ ready.push(pending[idx]); idx++; }
+    if(ready.length){
+      const ordered=order(ready, policy, rr); rr++;
+      const placed=new Set();
+      for(const job of ordered){
+        const w=workers.find(w=>fits(w,job));
+        if(!w){ if(skip) continue; else break; }
+        w.fc-=job.cores; w.fm-=job.memory;
+        const finish=now+job.runtime;
+        running.push({finish,job,worker:w.id});
+        records.push({job,worker:w.id,start:now,finish});
+        placed.add(job.id);
+      }
+      if(placed.size) ready=ready.filter(j=>!placed.has(j.id));
+    }
+    const cands=[];
+    if(running.length) cands.push(Math.min(...running.map(r=>r.finish)));
+    if(idx<pending.length) cands.push(pending[idx].arrival);
+    if(!cands.length) break;
+    const nxt=Math.min(...cands);
+    now = nxt>now ? nxt : now+1;
+  }
+  // metrics
+  const m={makespan:0,throughput:0,avgWait:0,avgTurn:0,util:0};
+  if(records.length){
+    const firstStart=Math.min(...records.map(r=>r.start));
+    const makespan=Math.max(...records.map(r=>r.finish))-firstStart;
+    const n=records.length;
+    const wait=records.reduce((s,r)=>s+(r.start-r.job.arrival),0)/n;
+    const turn=records.reduce((s,r)=>s+(r.finish-r.job.arrival),0)/n;
+    const used=records.reduce((s,r)=>s+r.job.cores*r.job.runtime,0);
+    m.makespan=makespan; m.throughput=makespan>0?n/makespan:n;
+    m.avgWait=wait; m.avgTurn=turn; m.util=makespan>0?used/(totalCores*makespan):0;
+  }
+  return {records,metrics:m};
+}
+
+const PALETTE=["#0369a1","#0891b2","#7c3aed","#db2777","#ea580c","#16a34a","#ca8a04","#475569"];
+function draw(sched, nWorkers){
+  const cv=document.getElementById("gantt"), ctx=cv.getContext("2d");
+  const W=cv.clientWidth, rowH=46, H=Math.max(120, nWorkers*rowH+50);
+  cv.width=W*devicePixelRatio; cv.height=H*devicePixelRatio; cv.style.height=H+"px";
+  ctx.scale(devicePixelRatio,devicePixelRatio);
+  ctx.clearRect(0,0,W,H);
+  const recs=sched.records;
+  const maxT=Math.max(1,...recs.map(r=>r.finish));
+  const padL=70, padR=20, plotW=W-padL-padR;
+  const x=t=>padL+(t/maxT)*plotW;
+  ctx.font="11px 'JetBrains Mono',monospace";
+  // axis
+  ctx.strokeStyle="#d2e3f0"; ctx.fillStyle="#44586a";
+  for(let t=0;t<=maxT;t++){ const xx=x(t); ctx.globalAlpha=.5; ctx.beginPath();ctx.moveTo(xx,30);ctx.lineTo(xx,H-16);ctx.stroke(); ctx.globalAlpha=1; if(maxT<=24||t%2===0){ctx.fillText(t,xx-3,H-4);} }
+  for(let w=0;w<nWorkers;w++){ ctx.fillStyle="#44586a"; ctx.fillText("worker "+w, 4, 30+w*rowH+rowH/2); }
+  recs.forEach((r,i)=>{
+    const xx=x(r.start), ww=Math.max(2,x(r.finish)-x(r.start)), yy=30+r.worker*rowH+8, hh=rowH-18;
+    ctx.fillStyle=PALETTE[i%PALETTE.length];
+    ctx.beginPath(); ctx.roundRect(xx,yy,ww,hh,5); ctx.fill();
+    ctx.fillStyle="#fff"; ctx.fillText(r.job.id, xx+5, yy+hh/2+4);
+  });
+}
+
+function fmt(x){ return Number.isInteger(x)?x:x.toFixed(2); }
+function render(){
+  const policy=document.getElementById("policy").value;
+  const nWorkers=Math.max(1,+document.getElementById("workers").value||1);
+  const cores=Math.max(1,+document.getElementById("cores").value||1);
+  const memory=Math.max(1,+document.getElementById("memory").value||1);
+  // guard: skip jobs that can never fit, to mirror the Python validation softly
+  const runnable=DEMO.every(j=>j.cores<=cores&&j.memory<=memory);
+  const tbody=document.getElementById("liveMetrics");
+  if(!runnable){ tbody.innerHTML='<tr><td>note</td><td>some job exceeds worker capacity — raise cores/memory</td></tr>'; document.getElementById("gantt").getContext("2d").clearRect(0,0,3000,300); return; }
+  const sched=simulate(DEMO,nWorkers,cores,memory,policy);
+  draw(sched,nWorkers);
+  const m=sched.metrics;
+  tbody.innerHTML=[
+    ["makespan",m.makespan],["throughput",m.throughput.toFixed(3)],
+    ["avg wait",m.avgWait.toFixed(2)],["avg turnaround",m.avgTurn.toFixed(2)],
+    ["utilisation",(m.util*100).toFixed(1)+"%"],
+  ].map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+  document.getElementById("legend").textContent =
+    "run order: " + [...sched.records].sort((a,b)=>a.start-b.start||a.worker-b.worker||(a.job.id<b.job.id?-1:1)).map(r=>r.job.id).join(" ");
+}
+document.getElementById("run").onclick=render;
+document.getElementById("policy").onchange=render;
+document.getElementById("reset").onclick=()=>{document.getElementById("workers").value=1;document.getElementById("cores").value=4;document.getElementById("memory").value=8;render();};
+window.addEventListener("resize",render);
+render();
+</script>
 </body>
 </html>
